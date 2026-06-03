@@ -1,0 +1,212 @@
+# =========================================================
+# .NET / C# / Visual Studio
+# =========================================================
+
+bin/
+obj/
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]uild/
+[Ll]og/
+[Ll]ogs/
+
+# =========================================================
+# .NET Core / ASP.NET Core
+# =========================================================
+
+project.lock.json
+project.assets.json
+artifacts/
+TestResults/
+coverage/
+coverage.xml
+coverage.json
+*.coverage
+*.coveragexml
+
+# =========================================================
+# NuGet
+# =========================================================
+
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+*.nuspec
+
+# =========================================================
+# Configurações sensíveis
+# =========================================================
+
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+appsettings.Local.json
+appsettings.*.local.json
+
+.env
+.env.*
+secrets.json
+
+# User secrets
+secrets/
+*.secret
+
+# =========================================================
+# Connection strings / arquivos locais
+# =========================================================
+
+*.config.local
+*.settings.local
+connectionstrings.json
+connections.json
+database.json
+
+# =========================================================
+# Logs
+# =========================================================
+
+*.log
+logs/
+Logs/
+Serilog/
+NLog/
+log.txt
+
+# =========================================================
+# Banco de dados / backups / dumps
+# =========================================================
+
+*.bak
+*.backup
+*.dump
+*.dmp
+*.sql.bak
+*.zip
+*.rar
+*.7z
+
+# Oracle dumps
+*.dmp
+*.dpdmp
+*.log
+
+# Firebird / SQLite / Access caso exista em algum teste
+*.fdb
+*.FDB
+*.sqlite
+*.sqlite3
+*.db
+*.mdb
+*.accdb
+
+# =========================================================
+# Arquivos fiscais / XML / integrações reais
+# =========================================================
+
+*.xml
+*.XML
+*.json.backup
+
+# Caso precise versionar XML de exemplo, usar pasta docs/examples
+!docs/examples/**/*.xml
+!docs/examples/**/*.json
+
+# =========================================================
+# Arquivos temporários
+# =========================================================
+
+*.tmp
+*.temp
+*.swp
+*.cache
+*.pid
+*.orig
+*.rej
+
+# =========================================================
+# Windows / Mac / Linux
+# =========================================================
+
+Thumbs.db
+Desktop.ini
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# =========================================================
+# Docker / infraestrutura local
+# =========================================================
+
+docker-compose.override.yml
+docker-compose.local.yml
+
+# =========================================================
+# Certificados / chaves
+# =========================================================
+
+*.pfx
+*.p12
+*.pem
+*.key
+*.crt
+*.cer
+*.jks
+
+# =========================================================
+# Publicação / deploy
+# =========================================================
+
+publish/
+Published/
+Deploy/
+deploy/
+wwwroot/uploads/
+uploads/
+output/
+*.code-workspace
+
+# =========================================================
+# Relatórios / exports locais
+# =========================================================
+
+exports/
+Exports/
+reports/
+Reports/
+*.xls
+*.xlsx
+*.csv
+
+# Caso queira versionar planilhas ou csv de exemplo:
+!docs/examples/**/*.xls
+!docs/examples/**/*.xlsx
+!docs/examples/**/*.csv
+
+# =========================================================
+# Arquivos específicos que podem conter dados reais
+# =========================================================
+
+appsettings.json
+web.config
