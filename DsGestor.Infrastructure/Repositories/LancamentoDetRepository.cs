@@ -28,34 +28,27 @@ public class LancamentoDetRepository : ILancamentoDetRepository
     public async Task<LancamentoDet?> GetByIdAsync(int id)
     {
         return await _context.LancamentosDet
+            .AsNoTracking()
+            .Include(x => x.Produto)
             .FirstOrDefaultAsync(x => x.Id == id);
-    }
-
-    private static void ValidarPrecoMinimo(decimal? precoUnitario, decimal? precoMinimo, string campo)
-    {
-        var minimo = precoMinimo ?? 0m;
-        var unit = precoUnitario ?? 0m;
-
-        if (minimo > 0m && unit < minimo)
-        {
-            throw new InvalidOperationException(
-                $"{campo} não pode ser inferior ao preço mínimo ({minimo:N2})."
-            );
-        }
     }
 
     public async Task<LancamentoDet> CreateAsync(LancamentoDet det)
     {
         ValidarPrecoMinimo(det.PrecoUnitario, det.PrecoMinimo, "Preço unitário");
 
+        /*
+         * Regra:
+         * No rascunho, o valor solicitado e o valor autorizado nascem iguais.
+         */
         det.QuantidadeAut = det.Quantidade;
         det.PrecoUnitarioAut = det.PrecoUnitario;
         det.PercDescontoAut = det.PercDesconto;
         det.MargemAut = det.Margem;
-        det.PrecoMinimo = det.PrecoMinimo;
 
         _context.LancamentosDet.Add(det);
         await _context.SaveChangesAsync();
+
         return det;
     }
 
@@ -63,10 +56,26 @@ public class LancamentoDetRepository : ILancamentoDetRepository
     {
         var atual = await _context.LancamentosDet
             .Include(x => x.Lancamento)
-            .FirstOrDefaultAsync(x => x.Id == det.Id);
+            .FirstOrDefaultAsync(x =>
+                x.Id == det.Id &&
+                x.CodigoLancamento == det.CodigoLancamento);
 
         if (atual is null)
-            throw new Exception("Item não encontrado.");
+            throw new KeyNotFoundException("Item não encontrado.");
+
+        if (atual.Lancamento is null)
+            throw new InvalidOperationException("Lançamento do item não encontrado.");
+
+        /*
+         * Update normal só deve ser usado em RASCUNHO.
+         * Em rascunho, original = AUT.
+         */
+        if (atual.Lancamento.Status != StatusLancamento.RASCUNHO)
+        {
+            throw new InvalidOperationException(
+                "A atualização normal de item só é permitida em RASCUNHO."
+            );
+        }
 
         ValidarPrecoMinimo(det.PrecoUnitario, det.PrecoMinimo, "Preço unitário");
 
@@ -74,23 +83,22 @@ public class LancamentoDetRepository : ILancamentoDetRepository
         atual.CodigoIcmTab = det.CodigoIcmTab;
         atual.PrecoCustoFin = det.PrecoCustoFin;
         atual.PrecoVenda = det.PrecoVenda;
+        atual.PrecoMinimo = det.PrecoMinimo;
         atual.MargemIdeal = det.MargemIdeal;
 
         atual.Quantidade = det.Quantidade;
         atual.PrecoUnitario = det.PrecoUnitario;
         atual.PercDesconto = det.PercDesconto;
         atual.Margem = det.Margem;
-        atual.PrecoMinimo = det.PrecoMinimo;
 
-        // enquanto NÃO autorizado, AUT acompanha o normal
-        if (atual.Lancamento != null && atual.Lancamento.Status != StatusLancamento.AUTORIZADO)
-        {
-            atual.QuantidadeAut = atual.Quantidade;
-            atual.PrecoUnitarioAut = atual.PrecoUnitario;
-            atual.PercDescontoAut = atual.PercDesconto;
-            atual.MargemAut = atual.Margem;
-            atual.PrecoMinimo = det.PrecoMinimo;
-        }
+        /*
+         * Enquanto rascunho:
+         * os campos autorizados acompanham exatamente o solicitado.
+         */
+        atual.QuantidadeAut = det.Quantidade;
+        atual.PrecoUnitarioAut = det.PrecoUnitario;
+        atual.PercDescontoAut = det.PercDesconto;
+        atual.MargemAut = det.Margem;
 
         await _context.SaveChangesAsync();
     }
@@ -99,16 +107,38 @@ public class LancamentoDetRepository : ILancamentoDetRepository
     {
         var atual = await _context.LancamentosDet
             .Include(x => x.Lancamento)
-            .FirstOrDefaultAsync(x => x.Id == det.Id);
+            .FirstOrDefaultAsync(x =>
+                x.Id == det.Id &&
+                x.CodigoLancamento == det.CodigoLancamento);
 
         if (atual is null)
-            throw new Exception("Item não encontrado.");
+            throw new KeyNotFoundException("Item não encontrado.");
 
         if (atual.Lancamento is null)
-            throw new Exception("Lançamento do item não encontrado.");
+            throw new InvalidOperationException("Lançamento do item não encontrado.");
 
-        ValidarPrecoMinimo(det.PrecoUnitarioAut, atual.PrecoMinimo, "Preço unitário autorizado");
+        if (atual.Lancamento.Status != StatusLancamento.PENDENTE)
+        {
+            throw new InvalidOperationException(
+                "A autorização de item só é permitida em lançamento PENDENTE."
+            );
+        }
 
+        /*
+         * Importante:
+         * Em autorização, valida o preço AUT contra o preço mínimo já gravado no item.
+         */
+        ValidarPrecoMinimo(
+            det.PrecoUnitarioAut,
+            atual.PrecoMinimo,
+            "Preço unitário autorizado"
+        );
+
+        /*
+         * Regra:
+         * Em PENDENTE, gerente altera SOMENTE os campos AUT.
+         * Os campos originais do vendedor permanecem intactos para auditoria.
+         */
         atual.QuantidadeAut = det.QuantidadeAut;
         atual.PrecoUnitarioAut = det.PrecoUnitarioAut;
         atual.PercDescontoAut = det.PercDescontoAut;
@@ -120,12 +150,50 @@ public class LancamentoDetRepository : ILancamentoDetRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(int id, int idLanc)
     {
-        var atual = await _context.LancamentosDet.FirstOrDefaultAsync(x => x.Id == id);
-        if (atual is null) return;
+        var atual = await _context.LancamentosDet
+            .Include(x => x.Lancamento)
+            .FirstOrDefaultAsync(x =>
+                x.Id == id &&
+                x.CodigoLancamento == idLanc);
+
+        if (atual is null)
+            throw new KeyNotFoundException("Item não encontrado.");
+
+        if (atual.Lancamento is null)
+            throw new InvalidOperationException("Lançamento do item não encontrado.");
+
+        if (atual.Lancamento.Status != StatusLancamento.RASCUNHO &&
+            atual.Lancamento.Status != StatusLancamento.PENDENTE)
+        {
+            throw new InvalidOperationException(
+                "Itens só podem ser removidos em lançamentos RASCUNHO ou PENDENTE."
+            );
+        }
 
         _context.LancamentosDet.Remove(atual);
         await _context.SaveChangesAsync();
+    }
+
+    private static void ValidarPrecoMinimo(
+        decimal? precoUnitario,
+        decimal? precoMinimo,
+        string campo)
+    {
+        var minimo = precoMinimo ?? 0m;
+        var unit = precoUnitario ?? 0m;
+
+        /*
+         * Preço mínimo zero significa "sem mínimo configurado".
+         * Só bloqueia quando o mínimo é maior que zero
+         * e o preço unitário autorizado/solicitado está abaixo dele.
+         */
+        if (minimo > 0m && unit < minimo)
+        {
+            throw new InvalidOperationException(
+                $"{campo} não pode ser inferior ao preço mínimo ({minimo:N2})."
+            );
+        }
     }
 }

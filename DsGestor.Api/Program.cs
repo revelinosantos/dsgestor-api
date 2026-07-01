@@ -32,8 +32,12 @@ builder.Services.AddScoped<IPromocaoRepository, PromocaoRepository>();
 builder.Services.AddScoped<IPromocaoItemRepository, PromocaoItemRepository>();
 builder.Services.AddScoped<IPromocaoClienteRepository, PromocaoClienteRepository>();
 builder.Services.AddScoped<IPromocaoOrigemPedidoRepository, PromocaoOrigemPedidoRepository>();
+builder.Services.AddScoped<ICoteFacilPedidoRepository, CoteFacilPedidoRepository>();
+builder.Services.AddScoped<ICoteFacilConsultaRepository, CoteFacilConsultaRepository>();
+builder.Services.AddScoped<ICoteFacilProdutoRepository, CoteFacilProdutoRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+
 
 // JWT Auth
 var jwtSection = builder.Configuration.GetSection("Jwt");
@@ -62,6 +66,11 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireRole("Admin"));
     options.AddPolicy("GerenteOuAcima", policy => policy.RequireRole("Admin", "Gerente"));
+    options.AddPolicy("CoteFacil", policy =>
+    {
+        policy.RequireAuthenticatedUser();
+        policy.RequireClaim("integration", "cotefacil");
+    });
 });
 
 builder.Services

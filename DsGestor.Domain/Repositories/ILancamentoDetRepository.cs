@@ -14,6 +14,5 @@ public interface ILancamentoDetRepository
 
     // Atualização de autorização (PENDENTE por ADMIN/GERENTE)
     Task UpdateAutorizacaoAsync(LancamentoDet det, int codigoUsuarioAut);
-
-    Task DeleteAsync(int id);
-}
+    Task DeleteAsync(int id, int idLanc);
+};
