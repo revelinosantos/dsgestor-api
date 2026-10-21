@@ -11,7 +11,7 @@ public interface ILancamentoRepository
     Task<IEnumerable<Lancamento>> GetByStatusAsync(StatusLancamento status);
 
     // ✅ NOVO: rascunho
-    Task<Lancamento?> GetDraftAsync(string codigoFilial, int numRegiao, int CodigoVendedor,int codigoCliente, int codigoUsuario, bool incluirItens = true);
+    Task<Lancamento?> GetDraftAsync(string codigoFilial, int numRegiao, int codigoCliente, int CodigoVendedor, int codigoUsuario, bool incluirItens = true);
     Task<Lancamento> CreateOrGetDraftAsync(Lancamento draft);
 
     // ✅ NOVO: finalizar rascunho

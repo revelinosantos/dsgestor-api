@@ -32,6 +32,15 @@ public class DsGestorDbContext : DbContext
     public DbSet<CoteFacilProdutoView> CoteFacilProdutos => Set<CoteFacilProdutoView>();
     public DbSet<PcPedc> PcPedcs => Set<PcPedc>();
     public DbSet<PcPedi> PcPedis => Set<PcPedi>();
+    public DbSet<Motorista> Motoristas => Set<Motorista>();
+    public DbSet<Ocorrencia> Ocorrencias => Set<Ocorrencia>();
+    public DbSet<OcorrenciaItem> OcorrenciasItens => Set<OcorrenciaItem>();
+    public DbSet<MotivoOcorrencia> MotivosOcorrencia => Set<MotivoOcorrencia>();
+    public DbSet<OcorrenciaHistorico> OcorrenciasHistorico => Set<OcorrenciaHistorico>();
+    public DbSet<NotaFiscalOcorrenciaView> NotasFiscaisOcorrencia => Set<NotaFiscalOcorrenciaView>();
+    public DbSet<ProdutoOcorrencia> ProdutosOcorrencia =>   Set<ProdutoOcorrencia>();
+    public DbSet<OcorrenciaRomaneio> OcorrenciasRomaneios  => Set<OcorrenciaRomaneio>();
+    public DbSet<OcorrenciaRomaneioOcorrencia> OcorrenciasRomaneiosOcorrencias  => Set<OcorrenciaRomaneioOcorrencia>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("ECOACRE");
@@ -57,8 +66,362 @@ public class DsGestorDbContext : DbContext
         ConfigureCoteFacilProdutoView(modelBuilder);
         ConfigurePcPedc(modelBuilder);
         ConfigurePcPedi(modelBuilder);
-        
+        ConfigureMotorista(modelBuilder);
+        ConfigureOcorrencia(modelBuilder);
+        ConfigureOcorrenciaItem(modelBuilder);
+        ConfigureMotivoOcorrencia(modelBuilder);
+        ConfigureOcorrenciaHistorico(modelBuilder);
+        ConfigureNotaFiscalOcorrenciaView(modelBuilder);
+        ConfigureProdutoOcorrencia(modelBuilder);
+        ConfigureOcorrenciaRomaneio(modelBuilder);
+        ConfigureOcorrenciaRomaneioOcorrencia(modelBuilder);
         base.OnModelCreating(modelBuilder);
+   }
+
+   private static void ConfigureOcorrenciaRomaneio( ModelBuilder modelBuilder)
+  {
+      var entity = modelBuilder.Entity<OcorrenciaRomaneio>();
+
+      entity.ToTable("DSGESTOR_OCORRENCIA_ROM");
+
+      entity.HasKey(e => e.Id);
+
+      entity.Property(e => e.Id)
+            .HasColumnName("CODROMANEIO")
+            .ValueGeneratedOnAdd();
+
+      entity.Property(e => e.Data)
+            .HasColumnName("DATA");
+
+      entity.Property(e => e.CodigoFilial)
+            .HasColumnName("CODFILIAL")
+            .HasMaxLength(2)
+            .IsUnicode(false);
+
+      entity.Property(e => e.CodigoMotorista)
+            .HasColumnName("CODMOTORISTA");
+
+      entity.Property(e => e.CodigoUsuario)
+            .HasColumnName("CODUSUARIO");
+
+      entity.Property(e => e.Status)
+            .HasColumnName("STATUS")
+            .HasConversion<int>();
+
+      entity.Property(e => e.Observacao)
+            .HasColumnName("OBSERVACAO")
+            .HasMaxLength(1000)
+            .IsUnicode(false);
+
+      entity.Property(e => e.DataCancelamento)
+            .HasColumnName("DATACANCELAMENTO");
+
+      entity.Property(e => e.CodigoUsuarioCancelamento)
+            .HasColumnName("CODUSUARIOCANCELAMENTO");
+
+      entity.Property(e => e.MotivoCancelamento)
+            .HasColumnName("MOTIVOCANCELAMENTO")
+            .HasMaxLength(500)
+            .IsUnicode(false);
+
+      entity.HasOne(e => e.Motorista)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoMotorista)
+            .HasPrincipalKey(e => e.Matricula)
+            .OnDelete(DeleteBehavior.Restrict);
+
+      entity.HasOne(e => e.Usuario)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoUsuario)
+            .HasPrincipalKey(e => e.Id)
+            .OnDelete(DeleteBehavior.Restrict);
+
+      entity.HasOne(e => e.UsuarioCancelamento)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoUsuarioCancelamento)
+            .HasPrincipalKey(e => e.Id)
+            .OnDelete(DeleteBehavior.Restrict);
+
+      entity.HasMany(e => e.Ocorrencias)
+            .WithOne(e => e.Romaneio)
+            .HasForeignKey(e => e.CodigoRomaneio)
+            .HasConstraintName("FK_DSG_ROM_OCORR_ROM");
+
+      entity.HasIndex(e => new
+            {
+                  e.CodigoFilial,
+                  e.CodigoMotorista,
+                  e.Status
+            })
+            .HasDatabaseName("IX_DSG_ROM_FIL_MOT_STATUS");
+   }
+  private static void ConfigureOcorrenciaRomaneioOcorrencia( ModelBuilder modelBuilder)
+  {
+      var entity =
+            modelBuilder.Entity<OcorrenciaRomaneioOcorrencia>();
+
+      entity.ToTable("DSGESTOR_OCORRENCIA_ROM_OCORR");
+
+      entity.HasKey(e => e.Id);
+
+      entity.Property(e => e.Id)
+            .HasColumnName("CODROM_OCORR")
+            .ValueGeneratedOnAdd();
+
+      entity.Property(e => e.CodigoRomaneio)
+            .HasColumnName("CODROMANEIO");
+
+      entity.Property(e => e.CodigoOcorrencia)
+            .HasColumnName("CODCORRENCIA");
+
+      entity.HasOne(e => e.Romaneio)
+            .WithMany(e => e.Ocorrencias)
+            .HasForeignKey(e => e.CodigoRomaneio)
+            .HasConstraintName("FK_DSG_ROM_OCORR_ROM")
+            .OnDelete(DeleteBehavior.Restrict);
+
+      entity.HasOne(e => e.Ocorrencia)
+            .WithMany(e => e.Romaneios)
+            .HasForeignKey(e => e.CodigoOcorrencia)
+            .HasConstraintName("FK_DSG_ROM_OCORR_OCORR")
+            .OnDelete(DeleteBehavior.Restrict);
+
+      entity.HasIndex(e => new
+            {
+                  e.CodigoRomaneio,
+                  e.CodigoOcorrencia
+            })
+            .IsUnique()
+            .HasDatabaseName("UK_DSG_ROM_OCORR");
+
+      entity.HasIndex(e => e.CodigoOcorrencia)
+            .HasDatabaseName("IX_DSG_ROM_OCORR_CORR");
+   }
+   private static void ConfigureProdutoOcorrencia(ModelBuilder modelBuilder)
+   {
+      var entity = modelBuilder.Entity<ProdutoOcorrencia>();
+
+      entity.ToTable("PCPRODUT");
+
+      entity.HasKey(e => e.Id);
+
+      entity.Property(e => e.Id)
+            .HasColumnName("CODPROD")
+            .HasPrecision(6, 0);
+
+      entity.Property(e => e.Descricao)
+            .HasColumnName("DESCRICAO")
+            .HasMaxLength(200)
+            .IsUnicode(false);
+
+      entity.Property(e => e.Unidade)
+            .HasColumnName("UNIDADE")
+            .HasMaxLength(2)
+            .IsUnicode(false);
+    }
+
+    private static void ConfigureOcorrencia(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<Ocorrencia>();
+
+        entity.ToTable("DSGESTOR_OCORRENCIA");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).HasColumnName("CODCORRENCIA").ValueGeneratedOnAdd();
+        entity.Property(e => e.Data).HasColumnName("DATA");
+        entity.Property(e => e.CodigoFilial).HasColumnName("CODFILIAL").HasMaxLength(2).IsUnicode(false);
+        entity.Property(e => e.CodigoFilialNf).HasColumnName("CODFILIALNF").HasMaxLength(2).IsUnicode(false);
+        entity.Property(e => e.NumeroNota).HasColumnName("NUMNOTA").HasPrecision(10, 0);
+        entity.Property(e => e.SerieNota).HasColumnName("SERIE").HasMaxLength(3).IsUnicode(false);
+        entity.Property(e => e.NumeroTransacaoVenda).HasColumnName("NUMTRANSVENDA").HasPrecision(10, 0);
+        entity.Property(e => e.CodigoCliente).HasColumnName("CODCLI");
+        entity.Property(e => e.CodigoVendedor).HasColumnName("CODUSUR");
+        entity.Property(e => e.CodigoMotoristaNota).HasColumnName("CODMOTORISTANOTA");
+        entity.Property(e => e.CodigoMotorista).HasColumnName("CODMOTORISTA");
+        entity.Property(e => e.CodigoUsuario).HasColumnName("CODUSUARIO");
+        entity.Property(e => e.Status).HasColumnName("STATUS").HasConversion<int>();
+        entity.Property(e => e.DevolucaoTotal)
+            .HasColumnName("DEVOLUCAOTOTAL")
+            .HasConversion(value => value ? "S" : "N", value => value == "S")
+            .HasMaxLength(1)
+            .IsUnicode(false);
+        entity.Property(e => e.Observacao).HasColumnName("OBSERVACAO").HasMaxLength(1000).IsUnicode(false);
+        entity.Property(e => e.DataEntregaMotorista).HasColumnName("DATAENTREGAMOTORISTA");
+        entity.Property(e => e.CodigoUsuarioEntrega).HasColumnName("CODUSUARIOENTREGA");
+        entity.Property(e => e.DataRetorno).HasColumnName("DATARETORNO");
+        entity.Property(e => e.CodigoUsuarioRetorno).HasColumnName("CODUSUARIORETORNO");
+        entity.Property(e => e.NumeroCredito).HasColumnName("NUMTRANSCREDITO").HasPrecision(10, 0);
+        entity.Property(e => e.NumeroNotaCredito).HasColumnName("NUMNOTACREDITO").HasPrecision(10, 0);
+        entity.Property(e => e.DataCredito).HasColumnName("DATACREDITO");
+        entity.Property(e => e.CodigoUsuarioCredito).HasColumnName("CODUSUARIOCREDITO");
+        entity.Property(e => e.DataFinalizacao).HasColumnName("DATAFINALIZACAO");
+        entity.Property(e => e.CodigoUsuarioFinalizacao).HasColumnName("CODUSUARIOFINALIZACAO");
+        entity.Property(e => e.DataCancelamento).HasColumnName("DATACANCELAMENTO");
+        entity.Property(e => e.CodigoUsuarioCancelamento).HasColumnName("CODUSUARIOCANCELAMENTO");
+        entity.Property(e => e.MotivoCancelamento).HasColumnName("MOTIVOCANCELAMENTO").HasMaxLength(500).IsUnicode(false);
+
+        entity.HasMany(e => e.Itens)
+            .WithOne(e => e.Ocorrencia)
+            .HasForeignKey(e => e.CodigoOcorrencia)
+            .HasConstraintName("FK_DSG_OCORR_ITEM_OCORR");
+
+        entity.HasMany(e => e.Historicos)
+            .WithOne(e => e.Ocorrencia)
+            .HasForeignKey(e => e.CodigoOcorrencia)
+            .HasConstraintName("FK_DSG_OCORR_HIST_OCORR");
+
+        entity.HasOne(e => e.Cliente)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoCliente)
+            .HasPrincipalKey(e => e.Id);
+
+        entity.HasOne(e => e.Vendedor)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoVendedor)
+            .HasPrincipalKey(e => e.Id);
+
+        entity.HasOne(e => e.MotoristaNota)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoMotoristaNota)
+            .HasPrincipalKey(e => e.Matricula);
+
+        entity.HasOne(e => e.Motorista)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoMotorista)
+            .HasPrincipalKey(e => e.Matricula);
+
+        entity.HasOne(e => e.Usuario)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoUsuario)
+            .HasPrincipalKey(e => e.Id);
+    }
+
+    private static void ConfigureOcorrenciaItem(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<OcorrenciaItem>();
+
+        entity.ToTable("DSGESTOR_OCORRENCIA_ITEM");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).HasColumnName("CODITEM").ValueGeneratedOnAdd();
+        entity.Property(e => e.CodigoOcorrencia).HasColumnName("CODCORRENCIA");
+        entity.Property(e => e.NumeroTransacaoVenda).HasColumnName("NUMTRANSVENDA").HasPrecision(10, 0);
+        entity.Property(e => e.NumeroItemNota).HasColumnName("NUMTRANSITEM");
+        entity.Property(e => e.CodigoProduto).HasColumnName("CODPROD");
+        entity.Property(e => e.QuantidadeFaturada).HasColumnName("QTFATURADA").HasPrecision(18, 6);
+        entity.Property(e => e.QuantidadeOcorrencia).HasColumnName("QTOCORRENCIA").HasPrecision(18, 6);
+        entity.Property(e => e.ValorUnitario).HasColumnName("PUNIT").HasPrecision(18, 6);
+        entity.Property(e => e.ValorTotal).HasColumnName("VALORTOTAL").HasPrecision(18, 2);
+        entity.Property(e => e.CodigoMotivo).HasColumnName("CODMOTIVO");
+        entity.Property(e => e.Observacao).HasColumnName("OBSERVACAO").HasMaxLength(1000).IsUnicode(false);
+
+        entity.HasOne(e => e.Produto)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoProduto)
+            .HasPrincipalKey(e => e.Id);
+
+        entity.HasOne(e => e.Motivo)
+            .WithMany(e => e.Itens)
+            .HasForeignKey(e => e.CodigoMotivo)
+            .HasConstraintName("FK_DSG_OCORR_ITEM_MOTIVO");
+
+        entity.HasIndex(e => new { e.NumeroTransacaoVenda, e.NumeroItemNota })
+            .IsUnique()
+            .HasDatabaseName("UK_DSG_OCORR_ITEM_NF");
+    }
+
+    private static void ConfigureMotivoOcorrencia(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<MotivoOcorrencia>();
+
+        entity.ToTable("DSGESTOR_MOTIVO_OCORRENCIA");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).HasColumnName("CODMOTIVO").ValueGeneratedOnAdd();
+        entity.Property(e => e.Descricao).HasColumnName("DESCRICAO").HasMaxLength(100).IsUnicode(false);
+        entity.Property(e => e.ExigeDevolucao)
+            .HasColumnName("EXIGEDEVOLUCAO")
+            .HasConversion(value => value ? "S" : "N", value => value == "S")
+            .HasMaxLength(1)
+            .IsUnicode(false);
+        entity.Property(e => e.Ativo)
+            .HasColumnName("ATIVO")
+            .HasConversion(value => value ? "S" : "N", value => value == "S")
+            .HasMaxLength(1)
+            .IsUnicode(false);
+        entity.Property(e => e.Ordem).HasColumnName("ORDEM");
+        entity.Property(e => e.DataCriacao).HasColumnName("DTCRIACAO");
+    }
+
+    private static void ConfigureOcorrenciaHistorico(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<OcorrenciaHistorico>();
+
+        entity.ToTable("DSGESTOR_OCORRENCIA_HIST");
+        entity.HasKey(e => e.Id);
+        entity.Property(e => e.Id).HasColumnName("CODHISTORICO").ValueGeneratedOnAdd();
+        entity.Property(e => e.CodigoOcorrencia).HasColumnName("CODCORRENCIA");
+        entity.Property(e => e.Data).HasColumnName("DATA");
+        entity.Property(e => e.CodigoUsuario).HasColumnName("CODUSUARIO");
+        entity.Property(e => e.StatusAnterior).HasColumnName("STATUSANTERIOR").HasConversion<int>();
+        entity.Property(e => e.StatusNovo).HasColumnName("STATUSNOVO").HasConversion<int>();
+        entity.Property(e => e.Observacao).HasColumnName("OBSERVACAO").HasMaxLength(1000).IsUnicode(false);
+
+        entity.HasOne(e => e.Usuario)
+            .WithMany()
+            .HasForeignKey(e => e.CodigoUsuario)
+            .HasPrincipalKey(e => e.Id);
+    }
+
+    private static void ConfigureNotaFiscalOcorrenciaView(ModelBuilder modelBuilder)
+    {
+        var entity = modelBuilder.Entity<NotaFiscalOcorrenciaView>();
+
+        entity.ToView("VIEW_DSGESTOR_NF_OCORRENCIA");
+        entity.HasNoKey();
+        entity.Property(e => e.DataSaida).HasColumnName("DTSAIDA");
+        entity.Property(e => e.CodigoFilial).HasColumnName("CODFILIAL").HasMaxLength(2).IsUnicode(false);
+        entity.Property(e => e.CodigoFilialNf).HasColumnName("CODFILIALNF").HasMaxLength(2).IsUnicode(false);
+        entity.Property(e => e.NumeroNota).HasColumnName("NUMNOTA").HasPrecision(10, 0);
+        entity.Property(e => e.Serie).HasColumnName("SERIE").HasMaxLength(3).IsUnicode(false);
+        entity.Property(e => e.NumeroTransacaoVenda).HasColumnName("NUMTRANSVENDA").HasPrecision(10, 0);
+        entity.Property(e => e.CodigoCliente).HasColumnName("CODCLI");
+        entity.Property(e => e.Cliente).HasColumnName("CLIENTE").IsUnicode(false);
+        entity.Property(e => e.Fantasia).HasColumnName("FANTASIA").IsUnicode(false);
+        entity.Property(e => e.Cidade).HasColumnName("CIDADE").IsUnicode(false);
+        entity.Property(e => e.CodigoVendedor).HasColumnName("CODUSUR");
+        entity.Property(e => e.Vendedor).HasColumnName("VENDEDOR").IsUnicode(false);
+        entity.Property(e => e.CodigoMotorista).HasColumnName("CODMOTORISTA");
+        entity.Property(e => e.Motorista).HasColumnName("MOTORISTA").IsUnicode(false);
+        entity.Property(e => e.NumeroTransacaoItem).HasColumnName("NUMTRANSITEM");
+        entity.Property(e => e.CodigoProduto).HasColumnName("CODPROD");
+        entity.Property(e => e.DescricaoProduto).HasColumnName("DESCRICAO").IsUnicode(false);
+        entity.Property(e => e.Unidade).HasColumnName("UNIDADE").IsUnicode(false);
+        entity.Property(e => e.Quantidade).HasColumnName("QT").HasPrecision(18, 6);
+        entity.Property(e => e.PrecoUnitario).HasColumnName("PUNIT").HasPrecision(18, 6);
+        entity.Property(e => e.ValorTotalItem).HasColumnName("VALORTOTALITEM").HasPrecision(18, 2);
+    }
+
+    private void ConfigureMotorista(ModelBuilder modelBuilder)
+    {
+      modelBuilder.Entity<Motorista>(entity =>
+      {
+            entity.ToTable("PCEMPR");
+
+            entity.HasKey(e => e.Matricula);
+
+            entity.Property(e => e.Matricula)
+                  .HasColumnName("MATRICULA");
+
+            entity.Property(e => e.Nome)
+                  .HasColumnName("NOME")
+                  .HasMaxLength(60);
+
+            entity.Property(e => e.Cpf)
+                  .HasColumnName("CPF")
+                  .HasMaxLength(20);
+
+            entity.Property(e => e.Situacao)
+                  .HasColumnName("SITUACAO")
+                  .HasMaxLength(1);
+      });
     }
 
     private void ConfigureConferenciaPedidoView(ModelBuilder modelBuilder)
@@ -698,7 +1061,7 @@ public class DsGestorDbContext : DbContext
 
         entity.Property(e => e.Codigo)
               .HasColumnName("MATRICULA")
-              .HasMaxLength(50);
+              .HasConversion<int>();
 
         entity.Property(e => e.CodigoVendedor)
               .HasColumnName("CODUSUR");
@@ -2193,4 +2556,6 @@ public class DsGestorDbContext : DbContext
                   .HasMaxLength(15)
                   .IsUnicode(false);
       }
+
+      
 }

@@ -35,6 +35,12 @@ builder.Services.AddScoped<IPromocaoOrigemPedidoRepository, PromocaoOrigemPedido
 builder.Services.AddScoped<ICoteFacilPedidoRepository, CoteFacilPedidoRepository>();
 builder.Services.AddScoped<ICoteFacilConsultaRepository, CoteFacilConsultaRepository>();
 builder.Services.AddScoped<ICoteFacilProdutoRepository, CoteFacilProdutoRepository>();
+builder.Services.AddScoped<IOcorrenciaRepository, OcorrenciaRepository>();
+builder.Services.AddScoped<IOcorrenciaItemRepository, OcorrenciaItemRepository>();
+builder.Services.AddScoped<IMotivoOcorrenciaRepository, MotivoOcorrenciaRepository>();
+builder.Services.AddScoped<INotaFiscalOcorrenciaRepository, NotaFiscalOcorrenciaRepository>();
+builder.Services.AddScoped<IMotoristaRepository, MotoristaRepository>();
+builder.Services.AddScoped<IOcorrenciaRomaneioRepository, OcorrenciaRomaneioRepository>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 
